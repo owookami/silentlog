@@ -370,10 +370,7 @@ fun PinSetupScreen(
                         onClick = {
                             showSuccessDialog = false
                             // 메인 화면으로 이동
-                            val navOptions = NavOptions.Builder()
-                                .setPopUpTo(Screen.PinSetup.route, true)
-                                .build()
-                            navController.navigate(Screen.Main.route, navOptions)
+                            onPinSetupSuccess(navController)
                         }
                     ) {
                         Text("확인")
@@ -412,4 +409,13 @@ private fun savePin(context: android.content.Context, pin: String) {
         putString("pin_code", pin)
         apply()
     }
+}
+
+// PIN이 성공적으로 설정된 후 처리
+private fun onPinSetupSuccess(navController: NavController) {
+    // 설정 완료 화면으로 이동
+    val navOptions = NavOptions.Builder()
+        .setPopUpTo(Screen.PinSetup.route, true)
+        .build()
+    navController.navigate(Screen.SetupComplete.route, navOptions)
 } 

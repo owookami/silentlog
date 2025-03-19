@@ -27,6 +27,7 @@ import com.zan.silent_log.presentation.screen.permissions.PermissionsScreen
 import com.zan.silent_log.presentation.screen.pinsetup.PinSetupScreen
 import com.zan.silent_log.presentation.screen.splash.SplashScreen
 import com.zan.silent_log.presentation.screen.terms.TermsAgreementScreen
+import com.zan.silent_log.presentation.screen.setupcomplete.SetupCompleteScreen
 import com.zan.silent_log.ui.theme.Silent_logTheme
 import com.zan.silent_log.util.PermissionManager
 
@@ -101,6 +102,10 @@ fun SilentLogNavHost() {
             
             composable(route = Screen.PinSetup.route) {
                 PinSetupScreen(navController = navController)
+            }
+            
+            composable(route = Screen.SetupComplete.route) {
+                SetupCompleteScreen(navController = navController)
             }
             
             composable(route = Screen.Login.route) {
