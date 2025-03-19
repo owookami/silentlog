@@ -43,6 +43,7 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.navigation.NavOptions
 import com.zan.silent_log.presentation.navigation.Screen
+import com.zan.silent_log.util.AppDebugSettings
 import kotlinx.coroutines.delay
 
 @Composable
@@ -52,25 +53,30 @@ fun SetupCompleteScreen(
 ) {
     // 애니메이션 상태
     var showIcon by remember { mutableStateOf(false) }
-    var showTitle by remember { mutableStateOf(false) }
-    var showDescription by remember { mutableStateOf(false) }
+    var showText by remember { mutableStateOf(false) }
     var showButton by remember { mutableStateOf(false) }
     
-    // 순차적 애니메이션 실행
+    // 디버깅 모드에서 로그인 건너뛰기 처리
     LaunchedEffect(Unit) {
-        // 아이콘 표시
+        if (AppDebugSettings.isEnabled(AppDebugSettings.Options.SKIP_LOGIN)) {
+            // 잠시 대기 후 (애니메이션을 보여주기 위해)
+            delay(1500)
+            
+            // 디버깅 모드에서 로그인을 건너뛰고 바로 메인 화면으로 이동
+            val navOptions = NavOptions.Builder()
+                .setPopUpTo(Screen.SetupComplete.route, true)
+                .build()
+            navController.navigate(Screen.Main.route, navOptions)
+        }
+    }
+    
+    // 애니메이션 순차 실행
+    LaunchedEffect(Unit) {
+        delay(300)
         showIcon = true
-        delay(400)
-        
-        // 제목 표시
-        showTitle = true
-        delay(300)
-        
-        // 설명 표시
-        showDescription = true
-        delay(300)
-        
-        // 버튼 표시
+        delay(500)
+        showText = true
+        delay(700)
         showButton = true
     }
     
@@ -116,7 +122,7 @@ fun SetupCompleteScreen(
             
             // 제목
             AnimatedVisibility(
-                visible = showTitle,
+                visible = showText,
                 enter = fadeIn(tween(500)) + 
                         slideInVertically(
                             animationSpec = tween(500),
@@ -135,7 +141,7 @@ fun SetupCompleteScreen(
             
             // 설명
             AnimatedVisibility(
-                visible = showDescription,
+                visible = showText,
                 enter = fadeIn(tween(500)) + 
                         slideInVertically(
                             animationSpec = tween(500),
@@ -153,22 +159,28 @@ fun SetupCompleteScreen(
             
             Spacer(modifier = Modifier.weight(1f))
             
-            // 시작하기 버튼
+            // 메인 화면으로 이동 버튼
             AnimatedVisibility(
                 visible = showButton,
                 enter = fadeIn(tween(500)) + 
-                        expandVertically(
+                        slideInVertically(
                             animationSpec = tween(500),
-                            expandFrom = Alignment.Top
+                            initialOffsetY = { it / 2 }
                         )
             ) {
                 Button(
                     onClick = {
-                        // 메인 화면으로 이동
+                        // 디버깅 모드에서는 바로 메인 화면으로, 아니면 로그인 화면으로
+                        val destination = if (AppDebugSettings.isEnabled(AppDebugSettings.Options.SKIP_LOGIN)) {
+                            Screen.Main.route
+                        } else {
+                            Screen.Login.route
+                        }
+                        
                         val navOptions = NavOptions.Builder()
-                            .setPopUpTo(Screen.Splash.route, true)
+                            .setPopUpTo(Screen.SetupComplete.route, true)
                             .build()
-                        navController.navigate(Screen.Main.route, navOptions)
+                        navController.navigate(destination, navOptions)
                     },
                     modifier = Modifier
                         .fillMaxWidth()
@@ -179,7 +191,7 @@ fun SetupCompleteScreen(
                     )
                 ) {
                     Text(
-                        text = "무료로 시작하기",
+                        text = "시작하기",
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold
                     )

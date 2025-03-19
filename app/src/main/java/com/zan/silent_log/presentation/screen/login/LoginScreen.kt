@@ -13,8 +13,10 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -22,41 +24,60 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.navigation.NavOptions
 import com.zan.silent_log.presentation.navigation.Screen
+import com.zan.silent_log.util.AppDebugSettings
+import kotlinx.coroutines.delay
 
 @Composable
 fun LoginScreen(
     navController: NavController,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
+    
+    // 디버깅 모드에서 로그인 건너뛰기 처리
+    LaunchedEffect(Unit) {
+        if (AppDebugSettings.isEnabled(AppDebugSettings.Options.SKIP_LOGIN)) {
+            // 잠시 대기 후 바로 메인 화면으로 이동
+            delay(300)
+            val navOptions = NavOptions.Builder()
+                .setPopUpTo(Screen.Login.route, true)
+                .build()
+            navController.navigate(Screen.Main.route, navOptions)
+        }
+    }
+    
+    // 로그인 화면 UI
     Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(16.dp),
+            .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        // 로그인 화면 타이틀
         Text(
             text = "로그인",
-            style = MaterialTheme.typography.headlineLarge,
+            fontSize = 28.sp,
             fontWeight = FontWeight.Bold,
-            textAlign = TextAlign.Center
+            color = MaterialTheme.colorScheme.primary
         )
         
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(16.dp))
         
         Text(
-            text = "로그인 화면은 추후 구현될 예정입니다",
-            style = MaterialTheme.typography.bodyLarge,
-            textAlign = TextAlign.Center
+            text = "설정한 PIN을 입력하여 로그인하세요",
+            fontSize = 16.sp,
+            textAlign = TextAlign.Center,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
         )
         
         Spacer(modifier = Modifier.height(48.dp))
         
-        // 임시 로그인 버튼 (메인 화면으로 이동)
+        // PIN 입력 구현 필요
+        
+        Spacer(modifier = Modifier.height(32.dp))
+        
         Button(
             onClick = {
-                // NavOptions를 사용하여 백스택에서 이전 화면을 제거
                 val navOptions = NavOptions.Builder()
                     .setPopUpTo(Screen.Login.route, true)
                     .build()

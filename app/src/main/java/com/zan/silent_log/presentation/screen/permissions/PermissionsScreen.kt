@@ -62,6 +62,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.navigation.NavController
 import androidx.navigation.NavOptions
 import com.zan.silent_log.presentation.navigation.Screen
+import com.zan.silent_log.util.AppDebugSettings
 import com.zan.silent_log.util.PermissionManager
 import kotlinx.coroutines.launch
 
@@ -80,8 +81,32 @@ fun PermissionsScreen(
     var showSettingsDialog by remember { mutableStateOf(false) }
     var showDevModeDialog by remember { mutableStateOf(false) }
     
+    // 디버깅 모드에서 권한 검사 건너뛰기 처리
+    LaunchedEffect(Unit) {
+        if (AppDebugSettings.isEnabled(AppDebugSettings.Options.SKIP_PERMISSION_CHECK)) {
+            Log.d(TAG, "디버깅 모드: 권한 검사 건너뛰기 활성화됨")
+            // PIN 설정 화면 건너뛰기 옵션도 활성화되어 있으면 메인 화면으로 바로 이동
+            if (AppDebugSettings.isEnabled(AppDebugSettings.Options.SKIP_PIN_SETUP)) {
+                val navOptions = NavOptions.Builder()
+                    .setPopUpTo(Screen.Permissions.route, true)
+                    .build()
+                navController.navigate(Screen.Main.route, navOptions)
+            } else {
+                // PIN 설정 화면으로만 이동
+                val navOptions = NavOptions.Builder()
+                    .setPopUpTo(Screen.Permissions.route, true)
+                    .build()
+                navController.navigate(Screen.PinSetup.route, navOptions)
+            }
+        }
+    }
+    
     // 권한 상태 확인 함수
     fun checkPermissions(): Boolean {
+        // 디버깅 모드에서 권한 검사 건너뛰기 옵션이 활성화되어 있으면 항상 true 반환
+        if (AppDebugSettings.isEnabled(AppDebugSettings.Options.SKIP_PERMISSION_CHECK)) {
+            return true
+        }
         return PermissionManager.checkAllPermissionsGranted(context)
     }
     
@@ -91,22 +116,33 @@ fun PermissionsScreen(
     ) { permissionsResult ->
         Log.d(TAG, "권한 요청 결과: $permissionsResult")
         
-        val allGranted = permissionsResult.values.all { it }
+        val allGranted = permissionsResult.values.all { it } || 
+                        AppDebugSettings.isEnabled(AppDebugSettings.Options.SKIP_PERMISSION_CHECK)
+        
         if (allGranted) {
-            // 모든 권한이 허용되었을 때
+            // 모든 권한이 허용되었을 때 또는 디버깅 모드에서 권한 검사 건너뛰기가 활성화되었을 때
             Log.d(TAG, "모든 권한이 허용됨")
-            // PIN 설정 화면으로 이동
-            val navOptions = NavOptions.Builder()
-                .setPopUpTo(Screen.Permissions.route, true)
-                .build()
-            navController.navigate(Screen.PinSetup.route, navOptions)
+            
+            // PIN 설정 화면 건너뛰기 옵션이 활성화되어 있으면 메인 화면으로 바로 이동
+            if (AppDebugSettings.isEnabled(AppDebugSettings.Options.SKIP_PIN_SETUP)) {
+                val navOptions = NavOptions.Builder()
+                    .setPopUpTo(Screen.Permissions.route, true)
+                    .build()
+                navController.navigate(Screen.Main.route, navOptions)
+            } else {
+                // PIN 설정 화면으로 이동
+                val navOptions = NavOptions.Builder()
+                    .setPopUpTo(Screen.Permissions.route, true)
+                    .build()
+                navController.navigate(Screen.PinSetup.route, navOptions)
+            }
         } else {
             // 일부 권한이 거부되었을 때
             Log.d(TAG, "일부 권한이 거부됨")
             showRationaleDialog = true
             
             // 개발 모드에서 권한 상태 저장
-            if (PermissionManager.DEV_MODE) {
+            if (PermissionManager.DEV_MODE || AppDebugSettings.DEBUG_MODE_ENABLED) {
                 PermissionManager.savePermissionResetTime(context)
                 PermissionManager.logPermissionStatus(context)
             }
@@ -136,7 +172,7 @@ fun PermissionsScreen(
         permissionsLauncher.launch(permissions)
         
         // 개발 모드에서 권한 상태 로깅
-        if (PermissionManager.DEV_MODE) {
+        if (PermissionManager.DEV_MODE || AppDebugSettings.DEBUG_MODE_ENABLED) {
             PermissionManager.logPermissionStatus(context)
         }
     }
@@ -148,7 +184,7 @@ fun PermissionsScreen(
         }
         
         // 개발 모드에서 권한 상태 로깅
-        if (PermissionManager.DEV_MODE) {
+        if (PermissionManager.DEV_MODE || AppDebugSettings.DEBUG_MODE_ENABLED) {
             PermissionManager.logPermissionStatus(context)
         }
     }
@@ -159,18 +195,28 @@ fun PermissionsScreen(
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
                 Log.d(TAG, "화면 재진입: 권한 상태 다시 확인")
+                
                 // 모든 권한이 허용되었는지 확인
                 if (checkPermissions()) {
                     Log.d(TAG, "모든 권한이 허용됨 - 화면 재진입")
-                    // PIN 설정 화면으로 이동
-                    val navOptions = NavOptions.Builder()
-                        .setPopUpTo(Screen.Permissions.route, true)
-                        .build()
-                    navController.navigate(Screen.PinSetup.route, navOptions)
+                    
+                    // PIN 설정 화면 건너뛰기 옵션이 활성화되어 있으면 메인 화면으로 바로 이동
+                    if (AppDebugSettings.isEnabled(AppDebugSettings.Options.SKIP_PIN_SETUP)) {
+                        val navOptions = NavOptions.Builder()
+                            .setPopUpTo(Screen.Permissions.route, true)
+                            .build()
+                        navController.navigate(Screen.Main.route, navOptions)
+                    } else {
+                        // PIN 설정 화면으로 이동
+                        val navOptions = NavOptions.Builder()
+                            .setPopUpTo(Screen.Permissions.route, true)
+                            .build()
+                        navController.navigate(Screen.PinSetup.route, navOptions)
+                    }
                 }
                 
                 // 개발 모드에서 권한 상태 로깅
-                if (PermissionManager.DEV_MODE) {
+                if (PermissionManager.DEV_MODE || AppDebugSettings.DEBUG_MODE_ENABLED) {
                     PermissionManager.logPermissionStatus(context)
                 }
             }
@@ -236,7 +282,7 @@ fun PermissionsScreen(
             }
             
             // 개발 모드 표시 (개발 모드일 때만 표시)
-            if (PermissionManager.DEV_MODE) {
+            if (PermissionManager.DEV_MODE || AppDebugSettings.DEBUG_MODE_ENABLED) {
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -356,7 +402,7 @@ fun PermissionsScreen(
                             navController.navigate(Screen.PinSetup.route, navOptions)
                             
                             // 개발 모드에서 권한 상태 저장
-                            if (PermissionManager.DEV_MODE) {
+                            if (PermissionManager.DEV_MODE || AppDebugSettings.DEBUG_MODE_ENABLED) {
                                 PermissionManager.savePermissionResetTime(context)
                             }
                         }
@@ -457,8 +503,8 @@ fun PermissionsScreen(
             )
         }
         
-        // 개발 모드 다이얼로그 (개발 모드일 때만 표시)
-        if (showDevModeDialog && PermissionManager.DEV_MODE) {
+        // 개발 모드 알림 대화상자
+        if (showDevModeDialog && (PermissionManager.DEV_MODE || AppDebugSettings.DEBUG_MODE_ENABLED)) {
             AlertDialog(
                 onDismissRequest = { showDevModeDialog = false },
                 icon = { 
@@ -468,11 +514,14 @@ fun PermissionsScreen(
                         tint = MaterialTheme.colorScheme.error
                     ) 
                 },
-                title = { Text("개발 모드 알림") },
+                title = { Text("디버깅 모드 알림") },
                 text = { 
                     Text(
-                        "개발 모드에서는 앱 종료 시 권한 상태가 로깅됩니다. " +
-                        "앱 데이터를 초기화하면 권한 상태를 초기화할 수 있습니다."
+                        "디버깅 모드에서는 앱 종료 시 권한 상태가 로깅됩니다. " +
+                        "앱 데이터를 초기화하면 권한 상태를 초기화할 수 있습니다." +
+                        (if (AppDebugSettings.isEnabled(AppDebugSettings.Options.SKIP_PERMISSION_CHECK)) 
+                            "\n\n현재 권한 검사 건너뛰기가 활성화되어 있습니다." 
+                        else "")
                     ) 
                 },
                 confirmButton = {

@@ -53,6 +53,7 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.navigation.NavOptions
 import com.zan.silent_log.presentation.navigation.Screen
+import com.zan.silent_log.util.AppDebugSettings
 import kotlinx.coroutines.delay
 
 // PIN의 길이
@@ -64,6 +65,17 @@ fun PinSetupScreen(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+    
+    // 디버깅 모드에서 PIN 설정 건너뛰기 처리
+    LaunchedEffect(Unit) {
+        if (AppDebugSettings.isEnabled(AppDebugSettings.Options.SKIP_PIN_SETUP)) {
+            // 디버깅 모드에서 PIN 설정을 건너뛰고 바로 메인 화면으로 이동
+            val navOptions = NavOptions.Builder()
+                .setPopUpTo(Screen.PinSetup.route, true)
+                .build()
+            navController.navigate(Screen.Main.route, navOptions)
+        }
+    }
     
     // PIN 상태
     var firstPin by remember { mutableStateOf("") }
@@ -413,9 +425,18 @@ private fun savePin(context: android.content.Context, pin: String) {
 
 // PIN이 성공적으로 설정된 후 처리
 private fun onPinSetupSuccess(navController: NavController) {
-    // 설정 완료 화면으로 이동
-    val navOptions = NavOptions.Builder()
-        .setPopUpTo(Screen.PinSetup.route, true)
-        .build()
-    navController.navigate(Screen.SetupComplete.route, navOptions)
+    // 디버깅 모드 옵션에 따라 처리
+    if (AppDebugSettings.isEnabled(AppDebugSettings.Options.SKIP_LOGIN)) {
+        // 로그인 건너뛰기가 활성화되어 있으면 바로 메인 화면으로 이동
+        val navOptions = NavOptions.Builder()
+            .setPopUpTo(Screen.PinSetup.route, true)
+            .build()
+        navController.navigate(Screen.Main.route, navOptions)
+    } else {
+        // 설정 완료 화면으로 이동 (기존 플로우)
+        val navOptions = NavOptions.Builder()
+            .setPopUpTo(Screen.PinSetup.route, true)
+            .build()
+        navController.navigate(Screen.SetupComplete.route, navOptions)
+    }
 } 
